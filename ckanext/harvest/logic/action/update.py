@@ -13,6 +13,8 @@ from ckan.logic import get_action
 from ckanext.harvest.interfaces import IHarvester
 from ckan.lib.search.common import SearchIndexError, make_connection
 
+from ckan.logic.action.update import package_update
+import ckan.lib.plugins as lib_plugins
 
 from ckan.model import Package
 from ckan import logic
@@ -839,3 +841,48 @@ def harvest_source_reindex(context, data_dict):
     package_index.index_package(new_dict, defer_commit=defer_commit)
 
     return True
+
+def override_package_update(context, data_dict):                             
+    '''
+    Updates the package using ckan package_update function
+
+    This overrides the default package_update function of ckan so that 
+    default views are created whenever a package is updated
+    '''
+    result = package_update(context, data_dict)
+
+    model = context['model']
+    user = context['user']
+    name_or_id = data_dict.get("id") or data_dict['name']
+
+    pkg = model.Package.get(name_or_id)
+    if pkg is None:
+        raise NotFound(_('Package was not found.'))
+    context["package"] = pkg
+    data_dict["id"] = pkg.id
+    data_dict['type'] = pkg.type
+
+    # get the schema
+    package_plugin = lib_plugins.lookup_package_plugin(pkg.type)
+    if 'schema' in context:
+        schema = context['schema']
+    else:
+        schema = package_plugin.update_package_schema()
+
+    data, errors = lib_plugins.plugin_validate(
+    package_plugin, context, data_dict, schema, 'package_update')
+
+    # Needed to let extensions know the new resources ids
+    data['id'] = pkg.id
+    if data.get('resources'):
+        for index, resource in enumerate(data['resources']):
+            resource['id'] = pkg.resources[index].id
+
+    # Create default views for resources if necessary
+    if data.get('resources'):
+        get_action('package_create_default_resource_views')(
+            {'model': context['model'], 'user': context['user'],
+             'ignore_auth': True},
+            {'package': data})
+    
+    return result
