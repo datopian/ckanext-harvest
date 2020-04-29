@@ -4,6 +4,8 @@ from logging import getLogger
 from six import string_types
 from sqlalchemy.util import OrderedDict
 
+from ckanext.harvest import logic as harvest_logic
+
 from ckan import logic
 from ckan import model
 import ckan.plugins as p
@@ -288,6 +290,7 @@ class Harvest(p.SingletonPlugin, DefaultDatasetForm, DefaultTranslation):
 
         module_root = 'ckanext.harvest.logic.action'
         action_functions = _get_logic_functions(module_root)
+        action_functions.update({'package_update':harvest_logic.action.update.override_package_update})
 
         return action_functions
 
