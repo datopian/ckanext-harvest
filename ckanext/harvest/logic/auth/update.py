@@ -1,5 +1,6 @@
 from ckan.plugins import toolkit as pt
 from ckanext.harvest.logic.auth import user_is_sysadmin
+from ckan.logic.auth.update import package_update
 
 
 def harvest_source_update(context, data_dict):
@@ -112,3 +113,11 @@ def harvest_source_reindex(context, data_dict):
         It forwards to harvest_source_update
     '''
     return harvest_source_update(context, data_dict)
+
+def override_package_update(context, data_dict):
+    '''
+        Authorization check for override_package_update
+
+        It forwards to package_update auth function
+    '''
+    return package_update(context, data_dict)

@@ -300,6 +300,7 @@ class Harvest(p.SingletonPlugin, DefaultDatasetForm, DefaultTranslation):
 
         module_root = 'ckanext.harvest.logic.auth'
         auth_functions = _get_logic_functions(module_root)
+        auth_functions.update({'package_update':harvest_logic.auth.update.override_package_update})
 
         return auth_functions
 
